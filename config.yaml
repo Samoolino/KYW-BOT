@@ -1,0 +1,89 @@
+mode: live-data
+poll_interval_seconds: 3
+symbol: ETH/USDC
+
+strategy:
+  trade_notional_usd: 100
+  min_net_profit_usd: 0.50
+  max_slippage_bps: 50
+  max_quote_age_ms: 2500
+
+risk:
+  max_trade_usd: 250
+  max_daily_loss_usd: 25
+  max_open_trades: 2
+  max_gas_usd: 8
+  max_price_deviation_bps: 300
+  cooldown_seconds: 3
+
+execution:
+  # Market data can be live while order execution remains independently gated.
+  enabled: false
+  mode: disabled
+
+session:
+  target_profit_usd: 10
+  starter_capital_usd: 100
+  auto_restart: false
+  # A reached target closes the session. A new session must be explicitly started.
+  require_manual_restart_after_target: true
+
+harvest:
+  enabled: true
+  # Accounting allocation only. Transfers/withdrawals are not performed by this module.
+  allocations:
+    - name: api_account_1
+      percent: 50
+      destination: CEX_ACCOUNT_1
+    - name: api_account_2
+      percent: 30
+      destination: CEX_ACCOUNT_2
+    - name: reserve
+      percent: 20
+      destination: USER_CONTROLLED_RESERVE
+
+notifications:
+  telegram: true
+  email: true
+  notify_on: [session_started, target_reached, risk_rejection, engine_error, rpc_down]
+
+cex:
+  enabled:
+    - binance
+    - bybit
+    - okx
+    - kraken
+    - coinbase
+    - kucoin
+    - gateio
+    - mexc
+    - bitget
+    - htx
+    - bitfinex
+    - bitstamp
+    - gemini
+    - cryptocom
+    - bitmart
+    - coinex
+    - whitebit
+    - poloniex
+    - woo
+    - backpack
+    - hyperliquid
+
+dex:
+  enabled: true
+  aggregator: 0x
+  api_key_env: ZEROEX_API_KEY
+
+rpc:
+  ethereum: ${ETH_RPC_URL}
+  base: ${BASE_RPC_URL}
+  arbitrum: ${ARBITRUM_RPC_URL}
+  optimism: ${OPTIMISM_RPC_URL}
+  polygon: ${POLYGON_RPC_URL}
+  bsc: ${BSC_RPC_URL}
+
+server:
+  host: 127.0.0.1
+  port: 8000
