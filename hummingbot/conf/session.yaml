@@ -1,0 +1,37 @@
+# KYW-BOT session policy
+# This configuration is intentionally separate from exchange credentials.
+# Hummingbot is open-source/self-hosted; there is no requirement to keep the
+# worker online through Telegram or Vercel.
+
+session:
+  target_profit_usd: 10
+  starter_capital_usd: 100
+  require_manual_restart_after_target: true
+
+strategy:
+  symbol: ETH/USDC
+  min_net_edge_bps: 25
+  max_slippage_bps: 50
+  max_quote_age_ms: 1500
+
+risk:
+  max_trade_usd: 250
+  max_daily_loss_usd: 25
+  max_open_trades: 2
+  max_gas_usd: 8
+
+harvest:
+  enabled: true
+  # Ledger allocations only. No automatic withdrawal is performed.
+  accounts:
+    - id: api_account_1
+      allocation_percent: 50
+    - id: api_account_2
+      allocation_percent: 30
+    - id: reserve
+      allocation_percent: 20
+
+runtime:
+  restart_policy: unless-stopped
+  telegram_is_control_plane_only: true
+  email_is_notification_only: true
