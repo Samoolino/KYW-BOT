@@ -21,21 +21,32 @@ class CCXTMarket:
         self.exchange = cls({"enableRateLimit": True, "timeout": timeout_ms})
 
     async def quote(self, symbol: str) -> Quote:
-        ticker = await self.exchange.fetch_ticker(symbol)
+        await self.exchange.load_markets()
+        ticker, book = await asyncio.gather(
+            self.exchange.fetch_ticker(symbol),
+            self.exchange.fetch_order_book(symbol, limit=5),
+        )
         bid = ticker.get("bid")
         ask = ticker.get("ask")
         if not bid or not ask:
-            raise RuntimeError(f"{self.exchange_id}: ticker has no bid/ask for {symbol}")
+            raise RuntimeError(f"{self.exchange_id}: no bid/ask for {symbol}")
 
-        info = ticker.get("info") or {}
+        bids = book.get("bids") or []
+        asks = book.get("asks") or []
+        bid_size = float(bids[0][1]) if bids else float(ticker.get("bidVolume") or 0)
+        ask_size = float(asks[0][1]) if asks else float(ticker.get("askVolume") or 0)
+        market = self.exchange.markets.get(symbol) or {}
+        taker = market.get("taker")
+        fee_bps = float(taker) * 10000 if taker is not None else 0.0
+
         return Quote(
             venue=self.exchange_id,
             symbol=symbol,
             bid=float(bid),
             ask=float(ask),
-            bid_size=float(ticker.get("bidVolume") or 0),
-            ask_size=float(ticker.get("askVolume") or 0),
-            fee_bps=0.0,
+            bid_size=bid_size,
+            ask_size=ask_size,
+            fee_bps=fee_bps,
             gas_usd=0.0,
             timestamp=datetime.now(timezone.utc),
         )
