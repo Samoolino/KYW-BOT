@@ -1,0 +1,16 @@
+mode: paper
+poll_interval_seconds: 2
+strategy:
+  base_asset: USDC
+  quote_asset: ETH
+  trade_notional_usd: 100
+  min_net_profit_usd: 0.50
+  max_slippage_bps: 50
+  max_quote_age_ms: 1500
+risk:
+  max_trade_usd: 250
+  max_daily_loss_usd: 25
+  max_open_trades: 2
+  max_gas_usd: 8
+  cooldown_seconds: 3
+venues: [CEX_A, CEX_B, DEX_A]
