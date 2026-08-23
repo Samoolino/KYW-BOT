@@ -6,9 +6,12 @@ from pathlib import Path
 import yaml
 
 from .ccxt_adapter import collect_quotes
+from .distribution import Allocation, ProfitAllocator
 from .models import Portfolio
+from .notifications import Notifier
 from .risk import Risk
 from .rpc import eth_block_number
+from .session import ProfitSession
 from .strategy import Detector
 
 log = logging.getLogger(__name__)
@@ -22,11 +25,11 @@ def load_config(path="config.yaml"):
 
 
 class LiveDataEngine:
-    """Live public market-data engine.
+    """Live market-data engine with target-gated session accounting.
 
-    It computes opportunities from live CEX quotes but deliberately does not
-    submit orders. This keeps the live-data pipeline separate from any future
-    user-controlled signing/execution boundary.
+    Market data remains live, while execution stays behind its independent
+    execution gate. Telegram/email are notification/control-plane services and
+    are never the process that keeps the engine alive.
     """
 
     def __init__(self, config):
@@ -35,7 +38,44 @@ class LiveDataEngine:
         self.portfolio = Portfolio()
         self.detector = Detector(config["strategy"])
         self.risk = Risk(config["risk"])
-        self.last = {"quotes": [], "opportunities": [], "rpc": {}}
+        session_cfg = config.get("session", {})
+        self.session = ProfitSession(
+            target_profit_usd=float(session_cfg.get("target_profit_usd", 10)),
+            starter_capital_usd=float(session_cfg.get("starter_capital_usd", 100)),
+        )
+        harvest = config.get("harvest", {})
+        allocations = [
+            Allocation(
+                name=a["name"],
+                percent=float(a["percent"]),
+                destination=a["destination"],
+            )
+            for a in harvest.get("allocations", [])
+        ]
+        self.allocator = ProfitAllocator(allocations) if allocations else None
+        self.notifier = Notifier()
+        self.last = {"quotes": [], "opportunities": [], "rpc": {}, "session": {}}
+
+    def start_session(self):
+        self.session.start()
+        self.notifier.alert(
+            "KYW-BOT session started",
+            f"Target ${self.session.target_profit_usd:.2f}; starter capital ${self.session.starter_capital_usd:.2f}.",
+        )
+
+    def record_realized_profit(self, amount_usd: float):
+        reached = self.session.record_profit(amount_usd)
+        if reached:
+            self.notifier.alert(
+                "KYW-BOT target reached",
+                f"Session target ${self.session.target_profit_usd:.2f} reached. New sessions require explicit restart.",
+            )
+        return reached
+
+    def harvest_preview(self):
+        if not self.allocator:
+            return {}
+        return self.allocator.allocate_profit(max(0, self.session.realized_profit_usd))
 
     async def cycle(self):
         exchange_ids = self.c["cex"]["enabled"]
@@ -75,6 +115,13 @@ class LiveDataEngine:
             ],
             "rpc": rpc,
             "execution": self.c.get("execution", {}),
+            "session": {
+                "state": self.session.state.value,
+                "target_profit_usd": self.session.target_profit_usd,
+                "realized_profit_usd": self.session.realized_profit_usd,
+                "target_remaining_usd": self.session.target_remaining_usd,
+            },
+            "harvest_preview": self.harvest_preview(),
         }
 
         if opportunities:
@@ -91,12 +138,13 @@ class LiveDataEngine:
         return self.last
 
     async def run(self):
-        log.info("starting live-data arbitrage engine; order execution is disabled")
+        log.info("starting live-data arbitrage engine; execution remains independently gated")
         while True:
             try:
                 await self.cycle()
             except Exception:
                 log.exception("live-data cycle failed")
+                self.notifier.alert("KYW-BOT engine error", "A market-data cycle failed; the worker will continue.")
             await asyncio.sleep(self.c["poll_interval_seconds"])
 
 
