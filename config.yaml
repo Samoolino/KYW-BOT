@@ -44,6 +44,11 @@ cex:
     - backpack
     - hyperliquid
 
+dex:
+  enabled: true
+  aggregator: 0x
+  api_key_env: ZEROEX_API_KEY
+
 rpc:
   ethereum: ${ETH_RPC_URL}
   base: ${BASE_RPC_URL}
