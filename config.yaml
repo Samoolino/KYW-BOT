@@ -1,16 +1,57 @@
-mode: paper
-poll_interval_seconds: 2
+mode: live-data
+poll_interval_seconds: 3
+symbol: ETH/USDC
+
 strategy:
-  base_asset: USDC
-  quote_asset: ETH
   trade_notional_usd: 100
   min_net_profit_usd: 0.50
   max_slippage_bps: 50
-  max_quote_age_ms: 1500
+  max_quote_age_ms: 2500
+
 risk:
   max_trade_usd: 250
   max_daily_loss_usd: 25
   max_open_trades: 2
   max_gas_usd: 8
+  max_price_deviation_bps: 300
   cooldown_seconds: 3
-venues: [CEX_A, CEX_B, DEX_A]
+
+execution:
+  enabled: false
+  mode: disabled
+
+cex:
+  enabled:
+    - binance
+    - bybit
+    - okx
+    - kraken
+    - coinbase
+    - kucoin
+    - gateio
+    - mexc
+    - bitget
+    - htx
+    - bitfinex
+    - bitstamp
+    - gemini
+    - cryptocom
+    - bitmart
+    - coinex
+    - whitebit
+    - poloniex
+    - woo
+    - backpack
+    - hyperliquid
+
+rpc:
+  ethereum: ${ETH_RPC_URL}
+  base: ${BASE_RPC_URL}
+  arbitrum: ${ARBITRUM_RPC_URL}
+  optimism: ${OPTIMISM_RPC_URL}
+  polygon: ${POLYGON_RPC_URL}
+  bsc: ${BSC_RPC_URL}
+
+server:
+  host: 127.0.0.1
+  port: 8000
