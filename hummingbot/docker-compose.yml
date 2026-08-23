@@ -1,0 +1,28 @@
+services:
+  hummingbot:
+    image: hummingbot/hummingbot:latest
+    container_name: kyw-hummingbot
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    volumes:
+      - ./conf:/home/hummingbot/conf
+      - ./scripts:/home/hummingbot/scripts
+      - ./logs:/home/hummingbot/logs
+      - ./data:/home/hummingbot/data
+    stdin_open: true
+    tty: true
+    depends_on:
+      - gateway
+
+  gateway:
+    image: hummingbot/gateway:latest
+    container_name: kyw-gateway
+    restart: unless-stopped
+    environment:
+      GATEWAY_PASSPHRASE: ${GATEWAY_PASSPHRASE:?set GATEWAY_PASSPHRASE}
+      DEV: "false"
+    volumes:
+      - ./gateway:/home/gateway/conf
+    ports:
+      - "15888:15888"
